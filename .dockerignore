@@ -1,0 +1,12 @@
+# Keep the Docker build context clean
+.env
+.env.*
+!.env.example
+__pycache__
+*.pyc
+*.pyo
+.git
+.gitignore
+*.md
+test_client.py
+locate-anything-api.zip

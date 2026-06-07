@@ -1,0 +1,27 @@
+# ── Web framework ─────────────────────────────────────────────────────────────
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+python-multipart>=0.0.9        # required for File/Form uploads in FastAPI
+pydantic>=2.0
+pydantic-settings>=2.0
+
+# ── Model dependencies (pinned as per NVIDIA model card) ──────────────────────
+transformers==4.57.1
+# torch / torchvision: install separately for your CUDA version BEFORE this file
+# See: https://pytorch.org/get-started/locally/
+# Example (CUDA 12.1):  pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+torch>=2.1.0
+torchvision>=0.16.0
+opencv-python-headless==4.11.0.86
+numpy>=1.26.0                  # 1.25.x conflicts with transformers>=4.40 internals
+Pillow==11.1.0
+peft>=0.10.0
+decord==0.6.0
+lmdb==1.7.5
+accelerate>=0.27.0             # required for from_pretrained device_map / multi-GPU
+
+# ── Optional: requests (for test_client.py only) ──────────────────────────────
+requests>=2.31.0
+
+# ── Optional: MagiAttention (Hopper / Blackwell GPUs — faster MTP inference) ──
+# Install separately: https://sandai-org.github.io/MagiAttention/docs/main/user_guide/install.html
