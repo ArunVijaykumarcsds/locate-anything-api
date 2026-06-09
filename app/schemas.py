@@ -1,29 +1,36 @@
 """
-Pydantic schemas for LocateAnything-3B API request/response models.
+Pydantic request/response schemas for locate-anything-api.
+
+Changes from original:
+- Added `strict: bool = False` to all request bodies
+- Added `not_found: bool` to PredictResponse
+- Added `not_found_reason: str | None` to PredictResponse
 """
 
+from typing import Optional
 from pydantic import BaseModel, Field
-from typing import Literal
 
+
+# ---------------------------------------------------------------------------
+# Shared sub-models
+# ---------------------------------------------------------------------------
 
 class BoundingBox(BaseModel):
-    """Bounding box in both pixel and normalised [0, 1] coordinates."""
-    x1: float = Field(..., description="Left edge in pixels")
-    y1: float = Field(..., description="Top edge in pixels")
-    x2: float = Field(..., description="Right edge in pixels")
-    y2: float = Field(..., description="Bottom edge in pixels")
-    x1_norm: float = Field(..., description="Left edge normalised [0,1]")
-    y1_norm: float = Field(..., description="Top edge normalised [0,1]")
-    x2_norm: float = Field(..., description="Right edge normalised [0,1]")
-    y2_norm: float = Field(..., description="Bottom edge normalised [0,1]")
+    x1: float
+    y1: float
+    x2: float
+    y2: float
+    x1_norm: float
+    y1_norm: float
+    x2_norm: float
+    y2_norm: float
 
 
 class Point(BaseModel):
-    """Point coordinate in both pixel and normalised [0, 1] coordinates."""
-    x: float = Field(..., description="X coordinate in pixels")
-    y: float = Field(..., description="Y coordinate in pixels")
-    x_norm: float = Field(..., description="X coordinate normalised [0,1]")
-    y_norm: float = Field(..., description="Y coordinate normalised [0,1]")
+    x: float
+    y: float
+    x_norm: float
+    y_norm: float
 
 
 class ImageSize(BaseModel):
@@ -31,9 +38,75 @@ class ImageSize(BaseModel):
     height: int
 
 
+# ---------------------------------------------------------------------------
+# Response — shared by all endpoints
+# ---------------------------------------------------------------------------
+
 class PredictResponse(BaseModel):
-    """Standard response for all grounding endpoints."""
-    answer: str = Field(..., description="Raw model token output (for debugging)")
-    boxes: list[BoundingBox] = Field(default_factory=list, description="Detected bounding boxes")
-    points: list[Point] = Field(default_factory=list, description="Detected point coordinates")
-    image_size: dict = Field(..., description="Original image dimensions {width, height}")
+    answer: str = Field(description="Raw model output string")
+    boxes: list[BoundingBox] = Field(default_factory=list)
+    points: list[Point] = Field(default_factory=list)
+    image_size: ImageSize
+
+    # --- NEW FIELDS ---
+    not_found: bool = Field(
+        default=False,
+        description="True when strict=True and the model could not find the target"
+    )
+    not_found_reason: Optional[str] = Field(
+        default=None,
+        description="Human-readable explanation when not_found is True"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Request bodies
+# ---------------------------------------------------------------------------
+
+class DetectRequest(BaseModel):
+    categories: str = Field(
+        description="Comma-separated object categories, e.g. 'person,car,bicycle'"
+    )
+    generation_mode: str = Field(default="hybrid")
+    # --- NEW ---
+    strict: bool = Field(
+        default=False,
+        description=(
+            "When True, the model is instructed to return NONE if no matching "
+            "object exists. Prevents hallucinated results."
+        )
+    )
+
+
+class GroundRequest(BaseModel):
+    query: str = Field(description="Natural-language phrase to ground")
+    generation_mode: str = Field(default="hybrid")
+    # --- NEW ---
+    strict: bool = Field(
+        default=False,
+        description="When True, returns not_found=True instead of a hallucinated result."
+    )
+
+
+class TextGroundRequest(BaseModel):
+    text: str = Field(description="The text string to locate in the image")
+    # --- NEW ---
+    strict: bool = Field(default=False)
+
+
+class GuiGroundRequest(BaseModel):
+    query: str = Field(description="Description of the UI element to locate")
+    output_type: str = Field(default="box", description="'box' or 'point'")
+    # --- NEW ---
+    strict: bool = Field(default=False)
+
+
+class PointRequest(BaseModel):
+    query: str = Field(description="Description of the object to point to")
+    # --- NEW ---
+    strict: bool = Field(default=False)
+
+
+class RawPredictRequest(BaseModel):
+    prompt: str = Field(description="Custom prompt sent directly to the model")
+    # NOTE: strict is intentionally omitted for /predict/raw — caller owns the prompt
